@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- <meta http-equiv="origin-trial" content="Amu7sW/oEH3ZqF6SQcPOYVpF9KYNHShFxN1GzM5DY0QW6NwGnbe2kE/YyeQdkSD+kZWhmRnUwQT85zvOA5WYfgAAAABJeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJmZWF0dXJlIjoiV2ViR1BVIiwiZXhwaXJ5IjoxNjUyODMxOTk5fQ=="> -->
+    <title>Webgpu Lesson</title>
+    <style>
+        html,
+        body {
+            font-family: Avenir,Helvetica,Arial,sans-serif;
+            -webkit-font-smoothing: antialiased;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        .menu{
+            width: 200px;
+            height: 100%;
+            border-right: 1px solid #888;
+            overflow: auto;
+            padding: 0 10px;
+        }
+        .menu > a{
+            display: block;
+            margin: 5px 0;
+            color: #045b88;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        a:hover{
+            text-decoration: underline;
+        }
+        a.active{
+            color: red;
+        }
+        iframe{
+            flex-grow: 1;
+            border: none;
+        }
+        .src{
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            height: 40px;
+            width: 40px;
+            background: #fff;
+            text-align: center;
+            font-size: 16px;
+            line-height: 40px;
+            border-radius: 50%;
+            border:none;
+            opacity: 0.6;
+            cursor: pointer;
+            text-decoration: none !important;
+        }
+        .src:hover{
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <h3>WebGPU Lesson</h3>
+        <a href="https://github.com/Orillusion/orillusion-webgpu-samples" target="_blank">Github</a>
+        <hr>
+        <a class="example active" target="triangle">triangle</a>
+    </div>
+    <iframe></iframe>
+    <a class="src" target="_blank">&lt; &gt;</a>
+    <script>
+        const iframe = document.querySelector('iframe')
+        const button = document.querySelector('.src')
+        const examples = document.querySelectorAll('.example')
+        for(let example of examples){
+            example.addEventListener('click', ()=>{
+                window.location.href = '/#' + example.target
+                iframe.src = '/examples/' + example.target + '.html'
+                button.href = 'https://github.com/Orillusion/orillusion-webgpu-samples/tree/main/src/' + example.target + '.ts'
+                document.querySelector('.active').classList.remove('active')
+                example.classList.add('active')
+            })
+        }
+        if(window.location.hash)
+            document.querySelector(`[target=${window.location.hash.slice(1)}]`).click()
+        else
+            document.querySelector('.example.active').click()
+    </script>
+</body>
+</html>
