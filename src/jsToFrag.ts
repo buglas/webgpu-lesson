@@ -1,6 +1,6 @@
 import positionVert from "./shaders/position.vert.wgsl?raw"
 import colorFrag from "./shaders/color.frag.wgsl?raw"
-// import redFrag from "./shaders/red.frag.wgsl?raw"
+
 // 初始化WebGPU
 async function initWebGPU(canvas: HTMLCanvasElement) {
 	// 判断当前设备是否支持WebGPU
@@ -19,7 +19,7 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 	//获取WebGPU上下文对象
 	const context = canvas.getContext("webgpu") as GPUCanvasContext
 	//获取浏览器默认的颜色格式
-	const format = context.getPreferredFormat(adapter)
+	const format = navigator.gpu.getPreferredCanvasFormat()
 	//设备分辨率
 	const devicePixelRatio = window.devicePixelRatio || 1
 	//canvas尺寸
@@ -27,13 +27,14 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 		width: canvas.clientWidth * devicePixelRatio,
 		height: canvas.clientHeight * devicePixelRatio,
 	}
+  canvas.width = size.width
+	canvas.height =size.height
 	//配置WebGPU
 	context.configure({
 		device,
 		format,
-		size,
 		// Alpha合成模式，opaque为不透明
-		compositingAlphaMode: "opaque",
+		alphaMode: "opaque",
 	})
 
 	return { device, context, format, size }
@@ -49,7 +50,7 @@ const vertex = new Float32Array([
 	0.5, -0.5, 0.0,
 ])
 // 顶点颜色
-const color = new Float32Array([1, 0, 0, 1])
+const color = new Float32Array([1, 1, 0, 1])
 
 // 创建渲染管线
 async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
@@ -87,7 +88,7 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 					arrayStride: 3 * 4,
 					attributes: [
 						{
-							// 遍历索引
+							// 变量索引
 							shaderLocation: 0,
 							// 偏移
 							offset: 0,
@@ -110,7 +111,7 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 			targets: [
 				{
 					// 颜色格式
-					format: format,
+					format,
 				},
 			],
 		},

@@ -1,6 +1,6 @@
-import positionVert from "./shaders/position.vert.wgsl?raw"
-// import colorFrag from "./shaders/color.frag.wgsl?raw"
-import redFrag from "./shaders/red.frag.wgsl?raw"
+import positionVert from "./shaders/matrix.vert.wgsl?raw"
+import colorFrag from "./shaders/color.frag.wgsl?raw"
+
 // 初始化WebGPU
 async function initWebGPU(canvas: HTMLCanvasElement) {
 	// 判断当前设备是否支持WebGPU
@@ -19,7 +19,7 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 	//获取WebGPU上下文对象
 	const context = canvas.getContext("webgpu") as GPUCanvasContext
 	//获取浏览器默认的颜色格式
-	const format = context.getPreferredFormat(adapter)
+	const format = navigator.gpu.getPreferredCanvasFormat()
 	//设备分辨率
 	const devicePixelRatio = window.devicePixelRatio || 1
 	//canvas尺寸
@@ -27,30 +27,42 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 		width: canvas.clientWidth * devicePixelRatio,
 		height: canvas.clientHeight * devicePixelRatio,
 	}
+  canvas.width = size.width
+	canvas.height =size.height
 	//配置WebGPU
 	context.configure({
 		device,
 		format,
-		size,
 		// Alpha合成模式，opaque为不透明
-		compositingAlphaMode: "opaque",
+		alphaMode: "opaque",
 	})
 
 	return { device, context, format, size }
 }
 
+// 顶点点位
+const vertex = new Float32Array([
+	// 0
+	0, 0.5, 0,
+	// 1
+	-0.5, -0.5, 0,
+	// 2
+	0.5, -0.5, 0.0,
+])
+// 顶点颜色
+const color = new Float32Array([1, 1, 0, 1])
+
+// 模型矩阵
+const modelMatrix=new Float32Array([
+    0.5,0,0,0,
+    0,0.5,0,0,
+    0,0,0.5,0,
+    0,0,0,1,
+])
+
 // 创建渲染管线
 async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
-	// 顶点点位
-	const vertex = new Float32Array([
-		// 0
-		0, 0.5, 0,
-		// 1
-		-0.5, -0.5, 0,
-		// 2
-		0.5, -0.5, 0.0,
-	])
-	// 建立顶点缓冲区
+	// 顶点缓冲区
 	const vertexBuffer = device.createBuffer({
 		// 顶点长度
 		size: vertex.byteLength,
@@ -59,6 +71,21 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 	})
 	// 写入数据
 	device.queue.writeBuffer(vertexBuffer, 0, vertex)
+
+	// 颜色缓冲区
+	const colorBuffer = device.createBuffer({
+		size: color.byteLength, //4 * 4,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	})
+	// 写入数据
+	device.queue.writeBuffer(colorBuffer, 0, color)
+
+  //模型矩阵的缓冲区
+	const modelBuffer = device.createBuffer({
+		size: 4 * 4 * 4, //行数*列数*BYTES_PER_ELEMENT
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	})
+  device.queue.writeBuffer(modelBuffer, 0, modelMatrix)
 
 	const descriptor: GPURenderPipelineDescriptor = {
 		// 顶点着色器
@@ -91,7 +118,7 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 		fragment: {
 			// 着色程序
 			module: device.createShaderModule({
-				code: redFrag,
+				code: colorFrag,
 			}),
 			// 主函数
 			entryPoint: "main",
@@ -113,10 +140,36 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 	}
 	// 创建异步管线
 	const pipeline = await device.createRenderPipelineAsync(descriptor)
-	//返回异步管线、顶点缓冲区
-	return { pipeline, vertexBuffer }
+	// 对buffer进行组合
+	const uniformGroup = device.createBindGroup({
+		// 布局
+		layout: pipeline.getBindGroupLayout(0),
+		// 添加buffer
+		entries: [
+      // 图形颜色
+			{
+				// 位置
+				binding: 0,
+				// 资源
+				resource: {
+					buffer: colorBuffer,
+				},
+			},
+      //  模型矩阵
+			{
+				// 位置
+				binding: 1,
+				// 资源
+				resource: {
+					buffer: modelBuffer,
+				},
+			},
+		],
+	})
+	//返回异步管线、顶点缓冲区、BindGroup
+	return { pipeline, vertexBuffer, uniformGroup }
 }
-// create & submit device commands
+
 // 编写绘图指令，并传递给本地的GPU设备
 function draw(
 	device: GPUDevice,
@@ -124,6 +177,7 @@ function draw(
 	pipelineObj: {
 		pipeline: GPURenderPipeline
 		vertexBuffer: GPUBuffer
+		uniformGroup: GPUBindGroup
 	}
 ) {
 	// 创建指令编码器
@@ -149,8 +203,10 @@ function draw(
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor)
 	// 传入渲染管线
 	passEncoder.setPipeline(pipelineObj.pipeline)
-	// 写入顶点缓冲区
+	// 把顶点缓冲区写入渲染通道
 	passEncoder.setVertexBuffer(0, pipelineObj.vertexBuffer)
+	// 把含有颜色缓冲区的BindGroup写入渲染通道
+	passEncoder.setBindGroup(0, pipelineObj.uniformGroup)
 	// 绘图，3 个顶点
 	passEncoder.draw(3)
 	// 结束编码
@@ -166,11 +222,12 @@ async function run() {
 	if (!canvas) throw new Error("No Canvas")
 	// 初始化WebGPU
 	const { device, context, format } = await initWebGPU(canvas)
+  // 初始化Pipeline
 	const pipelineObj = await initPipeline(device, format)
-	// start draw
+	// 绘图
 	draw(device, context, pipelineObj)
 
-	// re-configure context on resize
+	// 自适应窗口尺寸
 	window.addEventListener("resize", () => {
 		context.configure({
 			device,
