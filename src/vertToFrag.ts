@@ -1,5 +1,5 @@
-import positionVert from "./shaders/matrix.vert.wgsl?raw"
-import colorFrag from "./shaders/color.frag.wgsl?raw"
+import positionVert from "./shaders/vertToFrag.vert.wgsl?raw"
+import colorFrag from "./shaders/vertToFrag.frag.wgsl?raw"
 
 // 初始化WebGPU
 async function initWebGPU(canvas: HTMLCanvasElement) {
@@ -41,16 +41,24 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 }
 
 // 顶点点位
-const vertex = new Float32Array([
+/* const vertex = new Float32Array([
 	// 0
 	0, 0.5, 0,
 	// 1
 	-0.5, -0.5, 0,
 	// 2
 	0.5, -0.5, 0.0,
+]) */
+const vertex = new Float32Array([
+	// 顶点0
+	0, 0.5, 0,    1,1,0,
+	// 顶点1
+	-0.5, -0.5,   0,1,0,1,
+	// 顶点2
+	0.5, -0.5, 0, 0,0,1
 ])
 // 顶点颜色
-const color = new Float32Array([1, 1, 0, 1])
+// const color = new Float32Array([1, 1, 0, 1])
 
 // 模型矩阵
 const modelMatrix=new Float32Array([
@@ -73,12 +81,12 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 	device.queue.writeBuffer(vertexBuffer, 0, vertex)
 
 	// 颜色缓冲区
-	const colorBuffer = device.createBuffer({
+	/* const colorBuffer = device.createBuffer({
 		size: color.byteLength, //4 * 4,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	})
+	}) */
 	// 写入数据
-	device.queue.writeBuffer(colorBuffer, 0, color)
+	// device.queue.writeBuffer(colorBuffer, 0, color)
 
   //模型矩阵的缓冲区
 	const modelBuffer = device.createBuffer({
@@ -100,13 +108,23 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 			buffers: [
 				{
 					// 顶点长度，以字节为单位
-					arrayStride: 3 * 4,
+					arrayStride: 6 * 4,
 					attributes: [
+            //顶点位置
 						{
 							// 变量索引
 							shaderLocation: 0,
 							// 偏移
 							offset: 0,
+							// 参数格式
+							format: "float32x3",
+						},
+            //顶点颜色
+            {
+							// 变量索引
+							shaderLocation: 1,
+							// 偏移
+							offset: 3*4,
 							// 参数格式
 							format: "float32x3",
 						},
@@ -147,14 +165,14 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat) {
 		// 添加buffer
 		entries: [
       // 图形颜色
-			{
+			/* {
 				// 位置
 				binding: 0,
 				// 资源
 				resource: {
 					buffer: colorBuffer,
 				},
-			},
+			}, */
       //  模型矩阵
 			{
 				// 位置
