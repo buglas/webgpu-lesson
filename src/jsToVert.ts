@@ -19,7 +19,7 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 	//获取WebGPU上下文对象
 	const context = canvas.getContext("webgpu") as GPUCanvasContext
 	//获取浏览器默认的颜色格式
-	const format = context.getPreferredFormat(adapter)
+	const format = navigator.gpu.getPreferredCanvasFormat()
 	//设备分辨率
 	const devicePixelRatio = window.devicePixelRatio || 1
 	//canvas尺寸
@@ -27,13 +27,14 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
 		width: canvas.clientWidth * devicePixelRatio,
 		height: canvas.clientHeight * devicePixelRatio,
 	}
+  canvas.width = size.width
+	canvas.height =size.height
 	//配置WebGPU
 	context.configure({
 		device,
 		format,
-		size,
 		// Alpha合成模式，opaque为不透明
-		compositingAlphaMode: "opaque",
+		alphaMode: "opaque",
 	})
 
 	return { device, context, format, size }
@@ -172,14 +173,12 @@ async function run() {
 
 	// re-configure context on resize
 	window.addEventListener("resize", () => {
+    canvas.width=canvas.clientWidth * devicePixelRatio
+    canvas.height=canvas.clientHeight * devicePixelRatio
 		context.configure({
 			device,
 			format,
-			size: {
-				width: canvas.clientWidth * devicePixelRatio,
-				height: canvas.clientHeight * devicePixelRatio,
-			},
-			compositingAlphaMode: "opaque",
+			alphaMode: "opaque",
 		})
 		draw(device, context, pipelineObj)
 	})

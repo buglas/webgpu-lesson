@@ -1,4 +1,3 @@
-
 @fragment
 fn main(
   @location(0) color: vec4<f32>
