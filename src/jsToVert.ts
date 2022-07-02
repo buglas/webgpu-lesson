@@ -167,11 +167,12 @@ async function run() {
 	if (!canvas) throw new Error("No Canvas")
 	// 初始化WebGPU
 	const { device, context, format } = await initWebGPU(canvas)
-	const pipelineObj = await initPipeline(device, format)
-	// start draw
+	// 初始化渲染管道
+  const pipelineObj = await initPipeline(device, format)
+	//绘图
 	draw(device, context, pipelineObj)
 
-	// re-configure context on resize
+	// 自适应窗口
 	window.addEventListener("resize", () => {
     canvas.width=canvas.clientWidth * devicePixelRatio
     canvas.height=canvas.clientHeight * devicePixelRatio

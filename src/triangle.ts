@@ -72,7 +72,7 @@ async function initPipeline(
 		},
 		// 初始配置
 		primitive: {
-			//拓扑结构，triangle-list为绘制独立三角形
+			//绘制独立三角形
 			topology: "triangle-list",
 		},
     // 渲染管线的布局
@@ -81,7 +81,6 @@ async function initPipeline(
 	// 返回异步管线
 	return await device.createRenderPipelineAsync(descriptor)
 }
-// create & submit device commands
 // 编写绘图指令，并传递给本地的GPU设备
 function draw(
 	device: GPUDevice,
